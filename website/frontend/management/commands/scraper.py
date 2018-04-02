@@ -69,31 +69,8 @@ class Command(BaseCommand):
         update_versions(todays_repo, options['all'])
 
         logger.info('Done scraping!')
-        notify_admins_of_errors()
 
 # Begin utility functions
-
-def notify_admins_of_errors():
-    with open(ERROR_FILE_PATH, 'r') as error_file:
-        errors = error_file.read().strip()
-        if errors:
-            logger.error('Error file is non-empty at end of run; emailing contents to admins')
-            admin_emails = map(lambda e: e[1], settings.ADMINS)
-            send_email(admin_emails, 'NewsDiffs scraper errors', errors)
-
-def send_email(recipients, subject, body):
-    contents = 'Subject: %s\n\n%s' % (subject, body)
-
-    msmtp_path = '/usr/bin/msmtp'
-    if os.path.exists(msmtp_path):
-        p = subprocess.Popen([msmtp_path, '-t'] + recipients,
-                             stdin=subprocess.PIPE)
-        p.communicate(contents)
-        if p.wait():
-            logger.error('Bad return code:', p.returncode)
-    else:
-        logger.error('%s does not exist; cannot email errors to admins' % (msmtp_path,))
-
 def mkdir_p(path):
     try:
         os.makedirs(path)
