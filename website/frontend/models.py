@@ -1,23 +1,17 @@
-import re
 import subprocess
 import os
-from datetime import datetime, timedelta
-
 import json
-from django.db import models, IntegrityError
+
+from datetime import datetime
+from urlparse import urlparse
+
+from django.db import models
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT_DIR = os.path.dirname(os.path.dirname(THIS_DIR))
 GIT_DIR = ROOT_DIR+'/articles/'
 
 GIT_PROGRAM = 'git'
-
-PublicationDict = {'www.nytimes.com': 'NYT',
-                   'edition.cnn.com': 'CNN',
-                   'www.bbc.co.uk': 'BBC',
-                   'www.politico.com': 'Politico',
-                   'www.washingtonpost.com': 'Washington Post',
-                   }
 
 ancient = datetime(1901, 1, 1)
 
@@ -89,9 +83,9 @@ class Version(models.Model):
         return "%s for %s" % (self.v, self.article)
 
     def text(self):
+        version = self.v + ':' + self.article.filename()
         try:
-            return subprocess.check_output([GIT_PROGRAM, 'show',
-                                            self.v+':'+self.article.filename()],
+            return subprocess.check_output([GIT_PROGRAM, 'show', version],
                                            cwd=self.article.full_git_dir)
         except subprocess.CalledProcessError as e:
             return None
