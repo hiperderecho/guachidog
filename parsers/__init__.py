@@ -8,11 +8,7 @@
 # List of parsers to import and use based on parser.domains
 
 parsers = """
-nyt.NYTParser
-cnn.CNNParser
-politico.PoliticoParser
-bbc.BBCParser
-washpo.WashPoParser
+standalone.StandaloneParser
 """.split()
 
 parser_dict = {}
@@ -25,7 +21,12 @@ for parsername in parsers:
         parser_dict[domain] = parser
 
 def get_parser(url):
-    return parser_dict[url.split('/')[2]]
+    domain = url.split('/')[2]
+
+    if domain in parser_dict:
+        return parser_dict[domain]
+    else:
+        return parser_dict['standalone']
 
 # Each feeder places URLs into the database to be checked periodically.
 

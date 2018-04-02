@@ -56,7 +56,11 @@ class Article(models.Model):
         raise ValueError("Unknown file type '%s'" % self.url)
 
     def publication(self):
-        return PublicationDict.get(self.url.split('/')[2])
+        domain = self.url.split('/')[2]
+        if domain in PublicationDict:
+            return PublicationDict[domain]
+        else:
+            return domain
 
     def versions(self):
         return self.version_set.filter(boring=False).order_by('date')
@@ -110,7 +114,6 @@ class Version(models.Model):
             self.diff_json = json.dumps(val)
     diff_info = property(get_diff_info, set_diff_info)
 
-
 class Upvote(models.Model):
     class Meta:
         db_table = 'upvotes'
@@ -120,3 +123,12 @@ class Upvote(models.Model):
     diff_v2 = models.CharField(max_length=255, blank=False)
     creation_time = models.DateTimeField(blank=False)
     upvoter_ip = models.CharField(max_length=255)
+
+class StandaloneArticle(models.Model):
+    url = models.CharField(max_length=255, blank=False, unique=True,
+                           db_index=True)
+    added_by = models.CharField(max_length=255, blank=False)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return "%s" % (self.url)
