@@ -12,6 +12,7 @@ ADMINS = (
 MANAGERS = ADMINS
 
 WEBAPP_ROOT = os.path.dirname(os.path.abspath(__file__))
+WEBAPP_URL = 'http://127.0.0.1:8000'
 
 DATABASES = {
     'default': {
@@ -20,6 +21,9 @@ DATABASES = {
     }
 }
 
+SLACK_CLIENT_ID = ''
+SLACK_CLIENT_SECRET = ''
+SLACK_VERIFICATION_TOKEN = ''
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

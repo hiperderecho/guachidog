@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 import datetime
 import re
+import requests
 
 from django.shortcuts import render_to_response, get_object_or_404, redirect
-from models import Article, Version, StandaloneArticle
+from models import Article, Version, StandaloneArticle, SlackBotTeam
 import models
 import json
 from frontend.management.commands.scraper import update_article, get_and_make_git_repo
@@ -11,6 +13,9 @@ from django.core.urlresolvers import reverse
 import django.db
 from django.template import Context, RequestContext, loader
 from django.views.decorators.cache import cache_page
+from django.conf import settings
+
+from slackclient import SlackClient
 
 OUT_FORMAT = '%B %d, %Y at %l:%M%P EDT'
 
@@ -102,15 +107,99 @@ def get_articles(source=None, distance=0):
     articles.sort(key = lambda x: x[-1][0][1].date, reverse=True)
     return articles
 
-def add_url(request):
-    try:
-        request_url = request.POST['url']
-    except KeyError:
-        return Http404("No URL provided via POST")
+def slack(request):
+    client_id = settings.SLACK_CLIENT_ID
+    return render_to_response('guachidog_slack_oauth.html',
+        {'client_id': client_id,
+         'slack_installed': False },
+        context_instance=RequestContext(request))
 
-    url = request_url.split('?')[0]  #For if user copy-pastes from news site
+def slack_oauth(request):
+    code = request.GET['code']
+
+    params = {
+        'code': code,
+        'client_id': settings.SLACK_CLIENT_ID,
+        'client_secret': settings.SLACK_CLIENT_SECRET
+    }
+    url = 'https://slack.com/api/oauth.access'
+    json_response = requests.get(url, params)
+    data = json.loads(json_response.text)
+    SlackBotTeam.objects.create(
+        name=data['team_name'],
+        team_id=data['team_id'],
+        bot_user_id=data['bot']['bot_user_id'],
+        bot_access_token=data['bot']['bot_access_token']
+    )
+    return render_to_response('guachidog_slack_oauth.html',
+        {'slack_installed': True },
+        context_instance=RequestContext(request))
+
+def slack_events(request):
+    slack_message = json.loads(request.body)
+    print json.dumps(slack_message, indent=4, sort_keys=True)
+
+    if slack_message.get('token') != settings.SLACK_VERIFICATION_TOKEN:
+        return HttpResponse(status=403)
+
+    if slack_message.get('type') == 'url_verification':
+        return HttpResponse(content=request.body,status=200)
+
+    if 'event' in slack_message:
+        event_message = slack_message.get('event')
+
+        if event_message.get('subtype') == 'bot_message':
+            return HttpResponse(status=200)
+
+        team = SlackBotTeam.objects.get()
+
+        Client = SlackClient(team.bot_access_token)
+        user = event_message.get('user')
+        text = event_message.get('text')
+        channel = event_message.get('channel')
+
+        args = text.split()
+
+        if event_message.get('type') == 'app_mention':
+            command = args[1].lower()
+        else:
+            command = args[0].lower()
+
+        if len(args) < 2: # simple commands and messages
+            if 'hi' in command:
+                bot_text = 'Hi <@{}> :wave:'.format(user)
+            elif 'hola' in command:
+                bot_text = 'Hola <@{}> :wave:'.format(user)
+            else:
+                bot_text = 'pa k kieres saber eso jaja saludos (no reconocí tu comando)'
+        else: # commands with arguments
+            url = args[2] if (len(args) > 2) else args[1]
+            print url
+
+            if 'vigila' in command:
+                a = _add_standalone_article(url, user)
+                link = reverse(article_history, args=[a.url])
+                bot_text = u'Vigilaré %s (%s)' % (url, request.build_absolute_uri(link))
+            #elif 'reporta' in command:
+            #    bot_text = u'La última vez que vi %s, estaba :status:' % url
+            #elif 'elimina' in command:
+            #    bot_text = u'Voy a ignorar %s de ahora en adelante' % url
+            else:
+                bot_text = u'pa k kieres saber eso jaja saludos (no reconocí tu comando)'
+
+        Client.api_call(method='chat.postMessage',
+                        channel=channel,
+                        text=bot_text)
+        return HttpResponse(status=200)
+
+    return HttpResponse(status=200)
+
+def _add_standalone_article(raw_url, added_by):
+    url = raw_url.split('?')[0]  #For if user copy-pastes from news site
     url = prepend_http(url)
     url = url.strip('/')
+    url = url.strip('<>')
+    url = url.strip()
 
     # This is a hack to deal with unicode passed in the URL.
     # Otherwise gives an error, since our table character set is latin1. (Why not encode the table as unicode?)
@@ -123,7 +212,7 @@ def add_url(request):
         except StandaloneArticle.DoesNotExist:
             article = StandaloneArticle.objects.get(url=swap_http_https(decoded_url))
     except StandaloneArticle.DoesNotExist:
-        article = StandaloneArticle(url=decoded_url, added_by='web_frontend')
+        article = StandaloneArticle(url=decoded_url, added_by=added_by)
         article.save()
 
     # Trigger a scraper call
@@ -133,7 +222,16 @@ def add_url(request):
         a = models.Article(url=decoded_url, git_dir=get_and_make_git_repo())
         a.save()
 
-    update_article(a)
+    return a
+
+def add_url(request):
+    try:
+        request_url = request.POST['url']
+    except KeyError:
+        return Http404("No URL provided via POST")
+
+    article = _add_standalone_article(request_url, 'web_frontend')
+    update_article(article)
 
     return HttpResponseRedirect(reverse(article_history, args=[article.url]))
 
@@ -324,6 +422,10 @@ def article_history(request, urlarg=''):
 
     if len(urlarg) == 0:
         return HttpResponseRedirect(reverse(article_history, args=[article.filename()]))
+
+    old = datetime.datetime.now() - (datetime.timedelta(days=1) * 1)
+    if len(article.versions()) < 1 or article.last_update < old:
+        update_article(article)
 
     rowinfo = get_rowinfo(article)
     return render_to_response('guachidog_history.html', {'article':article,

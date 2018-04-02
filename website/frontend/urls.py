@@ -15,4 +15,8 @@ urlpatterns = [
   url(r'^add_url/$', 'frontend.views.add_url', name='add_url'),
 
   url(r'^$', 'frontend.views.browse', name='root'),
+
+  url(r'^slack/$', 'frontend.views.slack', name='slack'),
+  url(r'^slack/oauth/$', 'frontend.views.slack_oauth', name='slack_oauth'),
+  url(r'^slack/events/$', 'frontend.views.slack_events', name='slack_events'),
 ]

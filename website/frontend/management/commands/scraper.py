@@ -25,8 +25,11 @@ GIT_PROGRAM = 'git'
 ERROR_FILE_PATH = '/tmp/newsdiffs_logging_errs'
 
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from django.db.models import Q
 from optparse import make_option
+
+from slackclient import SlackClient
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
@@ -329,9 +332,28 @@ def update_article(article):
                                )
         v_row.diff_info = diff_info
         v_row.save()
+
         if not boring:
             article.last_update = t
             article.save()
+
+            # Notify slack
+            team = models.SlackBotTeam.objects.get()
+            standalone = models.StandaloneArticle.objects.get(url=article.url)
+            if standalone:
+                user = standalone.added_by
+                link = '/article-history/%s' % article.url
+                link = '%s%s' % (settings.WEBAPP_URL, link)
+                bot_text = 'Veo cambios en %s (%s)' % (article.url, link)
+
+                if not user.startswith('web_frontend'):
+                    Client = SlackClient(team.bot_access_token)
+                    dm = Client.api_call(method='im.open', user=user)
+                    channel = dm.get('channel').get('id')
+                    channel = channel if channel else user
+                    Client.api_call(method='chat.postMessage',
+                                    channel=channel,
+                                    text=bot_text)
 
 def update_articles(todays_git_dir):
     logger.info('Starting scraper; looking for new URLs')
