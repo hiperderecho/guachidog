@@ -12,11 +12,6 @@ GIT_DIR = ROOT_DIR+'/articles/'
 
 GIT_PROGRAM = 'git'
 
-def strip_prefix(string, prefix):
-    if string.startswith(prefix):
-        string = string[len(prefix):]
-    return string
-
 PublicationDict = {'www.nytimes.com': 'NYT',
                    'edition.cnn.com': 'CNN',
                    'www.bbc.co.uk': 'BBC',
@@ -113,16 +108,6 @@ class Version(models.Model):
         else:
             self.diff_json = json.dumps(val)
     diff_info = property(get_diff_info, set_diff_info)
-
-class Upvote(models.Model):
-    class Meta:
-        db_table = 'upvotes'
-
-    article_id = models.IntegerField(blank=False)
-    diff_v1 = models.CharField(max_length=255, blank=False)
-    diff_v2 = models.CharField(max_length=255, blank=False)
-    creation_time = models.DateTimeField(blank=False)
-    upvoter_ip = models.CharField(max_length=255)
 
 class StandaloneArticle(models.Model):
     url = models.CharField(max_length=255, blank=False, unique=True,
