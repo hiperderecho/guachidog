@@ -57,15 +57,18 @@
             <div class="site-heading">
               <h1>guachidog v0.1</h1>
               <span class="subheading">Añade una dirección a vigilar</span>
-              <div class="row">
-                <div class="col-lg-8 col-md-8 mb-2 mb-md-0">
-                  <input type="email" class="form-control form-control-lg" placeholder="URL">
+              <form action="{% url 'add_url' %}" method="post">
+                <div class="form-group row">
+                  {% csrf_token %}
+                  <div class="col-lg-8 col-md-8 mb-2 mb-md-0">
+                    <input type="text" name="url" class="form-control form-control-lg" placeholder="URL">
+                  </div>
+                  <div class="col-lg-4 col-md-4">
+                    <button type="submit" class="btn btn-block
+                        btn-primary">Guachidog it 🐶</button>
+                  </div>
                 </div>
-                <div class="col-lg-4 col-md-4">
-                  <button type="submit" class="btn btn-block
-                      btn-primary">Guachidog it 🐶</button>
-                </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

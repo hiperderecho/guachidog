@@ -12,5 +12,7 @@ urlpatterns = [
 
   url(r'^json/(?P<vid>\d+)/?$', 'frontend.views.json_view'),
 
+  url(r'^add_url/$', 'frontend.views.add_url', name='add_url'),
+
   url(r'^$', 'frontend.views.browse', name='root'),
 ]

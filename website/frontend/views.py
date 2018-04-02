@@ -2,9 +2,10 @@ import datetime
 import re
 
 from django.shortcuts import render_to_response, get_object_or_404, redirect
-from models import Article, Version
+from models import Article, Version, StandaloneArticle
 import models
 import json
+from frontend.management.commands.scraper import update_article, get_and_make_git_repo
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
 import django.db
@@ -119,6 +120,41 @@ def get_articles(source=None, distance=0):
     articles.sort(key = lambda x: x[-1][0][1].date, reverse=True)
     return articles
 
+def add_url(request):
+    try:
+        request_url = request.POST['url']
+    except KeyError:
+        return Http400()
+
+    url = request_url.split('?')[0]  #For if user copy-pastes from news site
+    url = prepend_http(url)
+    url = url.strip('/')
+
+    # This is a hack to deal with unicode passed in the URL.
+    # Otherwise gives an error, since our table character set is latin1. (Why not encode the table as unicode?)
+    url = url.encode('ascii', 'ignore')
+
+    decoded_url = decode_scheme_colon(url)
+    try:
+        try:
+            article = StandaloneArticle.objects.get(url=decoded_url)
+        except StandaloneArticle.DoesNotExist:
+            article = StandaloneArticle.objects.get(url=swap_http_https(decoded_url))
+    except StandaloneArticle.DoesNotExist:
+        article = StandaloneArticle(url=decoded_url, added_by='web_frontend')
+        article.save()
+
+    # Trigger a scraper call
+    try:
+        a = models.Article.objects.get(url=article.url)
+    except Article.DoesNotExist:
+        a = models.Article(url=decoded_url, git_dir=get_and_make_git_repo())
+        a.save()
+
+    update_article(a)
+
+    return HttpResponseRedirect(reverse(article_history, args=[article.url]))
+
 def browse(request, source=''):
     pagestr=request.REQUEST.get('page', '1')
     try:
@@ -142,7 +178,7 @@ def browse(request, source=''):
             'page':page,
             'page_list': page_list,
             'first_update': first_update,
-            })
+            }, context_instance=RequestContext(request))
 
 @cache_page(60 * 30)  #30 minute cache
 def feed(request, source=''):
@@ -224,7 +260,7 @@ def diffview(request, vid1, vid2, urlarg):
             'article_shorturl': article.filename(),
             'article_url': article.url, 'v1': v1, 'v2': v2,
             'display_search_banner': came_from_search_engine(request),
-            })
+            }, context_instance=RequestContext(request))
 
 def get_rowinfo(article, version_lst=None):
     if version_lst is None:
@@ -299,7 +335,8 @@ def article_history(request, urlarg=''):
             article = Article.objects.get(url=swap_http_https(decoded_url))
     except Article.DoesNotExist:
         try:
-            return render_to_response('guachidog_history_missing.html', {'url': decoded_url})
+            return render_to_response('guachidog_history_missing.html',
+                    {'url': decoded_url}, context_instance=RequestContext(request))
         except (TypeError, ValueError):
             # bug in django + mod_rewrite can cause this. =/
             return HttpResponse('Bug!')
@@ -311,7 +348,8 @@ def article_history(request, urlarg=''):
     return render_to_response('guachidog_history.html', {'article':article,
                                                        'versions':rowinfo,
             'display_search_banner': came_from_search_engine(request),
-                                                       })
+                                                       },
+                                                       context_instance=RequestContext(request))
 
 def article_history_feed(request, url=''):
     url = prepend_http(url)
