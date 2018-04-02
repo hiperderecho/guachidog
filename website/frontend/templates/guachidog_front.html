@@ -1,0 +1,58 @@
+{% extends 'guachidog_base.html' %}
+
+{% block content %}
+      <div class="row">
+        <div class="col-lg-12 col-md-10 mx-auto">
+          <div class="post-preview mb-5">
+            <h3 class="post-subtitle">
+              Sitios web vigilados el día de hoy
+            </h3>
+            <!--
+            <p class="post-meta">Posted by
+              <a href="#">Start Bootstrap</a>
+              on September 24, 2018</p>
+            <hr>
+            -->
+          </div>
+          <div class="post-preview">
+            <table class="table table-condensed">
+              <thead>
+                <tr>
+                  <th text-align:"left";>Article</th><th>Version</th><th>Diff</th>
+                </tr>
+              </thead>
+              {% for article, last_version, versions in articles %}
+                <tr>
+                  <td rowspan="{{versions|length}}" valign="top">
+                    <a href="{% url 'article_history' article.url %}">{{last_version.title}}</a> (<a href="{{article.url}}">{{article.publication}}</a>)<br/>{{last_version.byline}}
+                  </td>
+                {% for difflink, version in versions %}
+                  <td>{{version.date}}</td>
+                  {% if difflink %}
+                      <td><a href="{{difflink}}">(Compare)</a></td>
+                    </tr>
+                    <tr>
+                  {% else %}
+                      <td></td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </table>
+            {% for i in page_list %}
+              {% if i == page %}
+                {{i}}
+              {% else %}
+                <a href="{% url 'browse' source %}?page={{i}}">{{i}}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <!-- Pager -->
+          <!--
+          <div class="clearfix">
+            <a class="btn btn-primary float-right" href="#">Older Posts &rarr;</a>
+          </div>
+          -->
+        </div>
+      </div>
+{% endblock %}

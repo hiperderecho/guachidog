@@ -1,0 +1,38 @@
+{% extends 'guachidog_base.html' %}
+
+{% block content %}
+      <div class="row">
+        <div class="col-lg-12 col-md-10 mx-auto">
+          <div class="post-preview mb-5">
+            <h3 class="post-subtitle">
+              {{article.latest_version.title}} ({{article.publication}}), changelog
+            </h3>
+            <p class="post-meta">
+              First archived on {{article.initial_date}} |
+              <a href="{{article.url}}">{{article.url}}</a>
+            </p>
+          </div>
+          <div class="post-preview">
+            <table class="table table-condensed">
+              <thead>
+                <tr>
+                  <td>Headline</td><td>Date/Time EST Archived</td><td>Diff</td>
+                </tr>
+              </thead>
+
+              {% for difflink, version in versions %}
+              <tr>
+                <td>{{version.title}}</td>
+                <td>{{version.date}}</td>
+                {% if difflink %}
+                  <td><a href="{{difflink}}">(Compare with previous)</a></td>
+                {% else %}
+                  <td></td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+      </div>
+{% endblock %}

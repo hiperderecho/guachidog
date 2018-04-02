@@ -61,31 +61,31 @@ def get_articles(source=None, distance=0):
     print 'Asking query'
     version_query = '''
     SELECT
-      version.id, 
-      version.article_id, 
-      version.v, 
+      version.id,
+      version.article_id,
+      version.v,
       version.title,
-      version.byline, 
-      version.date, 
-      version.boring, 
+      version.byline,
+      version.date,
+      version.boring,
       version.diff_json,
       T.age as age,
-      Articles.url as a_url, 
+      Articles.url as a_url,
       Articles.initial_date as a_initial_date,
-      Articles.last_update as a_last_update, 
+      Articles.last_update as a_last_update,
       Articles.last_check as a_last_check
     FROM version,
      (
-       SELECT 
-         Articles.id as article_id, 
-         MAX(version_3.date) AS age, 
+       SELECT
+         Articles.id as article_id,
+         MAX(version_3.date) AS age,
          COUNT(version_3.id) AS num_vs
       FROM Articles LEFT OUTER JOIN version version_3 ON (Articles.id = version_3.article_id)
-      WHERE version_3.boring = 0 
-      GROUP BY Articles.id 
+      WHERE version_3.boring = 0
+      GROUP BY Articles.id
       -- isn't 'age' here actually latest_version_date?
       HAVING (age > %s  AND age < %s  AND num_vs > 1 )
-      ) T, 
+      ) T,
       Articles
     WHERE (version.article_id = Articles.id) and
           (version.article_id = T.article_id) and
@@ -119,17 +119,7 @@ def get_articles(source=None, distance=0):
     articles.sort(key = lambda x: x[-1][0][1].date, reverse=True)
     return articles
 
-
-SOURCES = '''nytimes.com cnn.com politico.com washingtonpost.com
-bbc.co.uk'''.split()
-
-def is_valid_domain(domain):
-    """Cheap method to tell whether a domain is being tracked."""
-    return any(domain.endswith(source) for source in SOURCES)
-
 def browse(request, source=''):
-    if source not in SOURCES + ['']:
-        raise Http404
     pagestr=request.REQUEST.get('page', '1')
     try:
         page = int(pagestr)
@@ -139,7 +129,7 @@ def browse(request, source=''):
     # Temporarily disable browsing past the first page, since it was
     # overloading the server.
     if page != 1:
-        return HttpResponseRedirect(reverse(browse))
+        return HttpResponseRedirect(reverse(root))
 
     first_update = get_first_update(source)
     num_pages = (datetime.datetime.now() - first_update).days + 1
@@ -147,18 +137,15 @@ def browse(request, source=''):
     page_list = []
 
     articles = get_articles(source=source, distance=page-1)
-    return render_to_response('browse.html', {
+    return render_to_response('guachidog_front.html', {
             'source': source, 'articles': articles,
             'page':page,
             'page_list': page_list,
             'first_update': first_update,
-            'sources': SOURCES
             })
 
 @cache_page(60 * 30)  #30 minute cache
 def feed(request, source=''):
-    if source not in SOURCES + ['']:
-        raise Http404
     pagestr=request.REQUEST.get('page', '1')
     try:
         page = int(pagestr)
@@ -177,7 +164,6 @@ def feed(request, source=''):
             'request':request,
             'page_list': page_list,
             'last_update': last_update,
-            'sources': SOURCES
             },
             context_instance=RequestContext(request),
             mimetype='application/atom+xml')
@@ -230,7 +216,7 @@ def diffview(request, vid1, vid2, urlarg):
         else:
             links.append('')
 
-    return render_to_response('diffview.html', {
+    return render_to_response('guachidog_diff.html', {
             'title': title,
             'date1':dates[0], 'date2':dates[1],
             'text1':texts[0], 'text2':texts[1],
@@ -295,7 +281,7 @@ def article_history(request, urlarg=''):
     if url is None:
         url = urlarg
     if len(url) == 0:
-        return HttpResponseRedirect(reverse(browse))
+        return HttpResponseRedirect(reverse(root))
 
     url = url.split('?')[0]  #For if user copy-pastes from news site
 
@@ -305,13 +291,6 @@ def article_history(request, urlarg=''):
     # Otherwise gives an error, since our table character set is latin1. (Why not encode the table as unicode?)
     url = url.encode('ascii', 'ignore')
 
-    # Give an error on urls with the wrong hostname without hitting the
-    # database.  These queries are usually spam.
-    domain = url.split('/')[2]
-    if not is_valid_domain(domain):
-        # Should really tell the users that it is missing
-        return render_to_response('article_history_missing.html', {'url': url})
-
     decoded_url = decode_scheme_colon(url)
     try:
         try:
@@ -320,7 +299,7 @@ def article_history(request, urlarg=''):
             article = Article.objects.get(url=swap_http_https(decoded_url))
     except Article.DoesNotExist:
         try:
-            return render_to_response('article_history_missing.html', {'url': decoded_url})
+            return render_to_response('guachidog_history_missing.html', {'url': decoded_url})
         except (TypeError, ValueError):
             # bug in django + mod_rewrite can cause this. =/
             return HttpResponse('Bug!')
@@ -329,10 +308,11 @@ def article_history(request, urlarg=''):
         return HttpResponseRedirect(reverse(article_history, args=[article.filename()]))
 
     rowinfo = get_rowinfo(article)
-    return render_to_response('article_history.html', {'article':article,
+    return render_to_response('guachidog_history.html', {'article':article,
                                                        'versions':rowinfo,
             'display_search_banner': came_from_search_engine(request),
                                                        })
+
 def article_history_feed(request, url=''):
     url = prepend_http(url)
     article = get_object_or_404(Article, url=url)
