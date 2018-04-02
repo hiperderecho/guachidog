@@ -45,9 +45,7 @@ class Article(models.Model):
         if ans.startswith('http://'):
             return ans[len('http://'):]
         elif ans.startswith('https://'):
-            # Terrible hack for backwards compatibility from when https was stored incorrectly,
-            # perpetuating the problem
-            return 'https:/' + ans[len('https://'):]
+            return ans[len('https://'):]
         raise ValueError("Unknown file type '%s'" % self.url)
 
     def publication(self):
