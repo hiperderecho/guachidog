@@ -4,6 +4,7 @@ import os.path
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+DEBUG_PROPAGATE_EXCEPTIONS = True
 
 ADMINS = (
      ('Diego Escalante Urrelo', 'diego@hiperderecho.org'),
