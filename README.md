@@ -1,16 +1,27 @@
-NewsDiffs
-==========
+guachidog🐶
+===========
 
-A website and framework that tracks changes in online news articles over time.
+Un sitio web y bot de Slack que monitorea cambios en otros sitios web.
 
-Original installation at newsdiffs.org.
-A product of the Knight Mozilla MIT news hackathon in June 2012.
-Authors: Eric Price (ecprice@mit.edu), Greg Price (gnprice@gmail.com),
- and Jennifer 8. Lee (jenny@jennifer8lee.com)
+Basado en el código de newsdiffs, escrito Eric Price (ecprice@mit.edu),
+Greg Price (gnprice@gmail.com), Jennifer 8. Lee (jenny@jennifer8lee.com)
 
-This is free software under the MIT/Expat license; see LICENSE.
-The project's source code lives at http://github.com/ecprice/newsdiffs .
+Bajo licencia MIT/Expat; ver LICENSE.
+http://github.com/ecprice/newsdiffs.
 
+guachidog funciona con las mismas instrucciones que newsdiffs, con el
+requisito adicional del módulo slackclient (instalable con pip).
+
+Para la funcionalidad de Slack es necesario crear una aplicación en Slack:
+https://api.slack.com/apps
+
+La aplicación no tiene que ser pública. Los tokens de autenticación deben
+estar en settings.py (ver ejemplo).
+
+Considerar guachidog en calidad alpha.
+
+
+Instrucciones de instalación originales de newsdiffs:
 
 Requirements
 ------------
@@ -95,32 +106,3 @@ To run the scraper every hour, run something like:
 ```$ while true; do python website/manage.py scraper; sleep 60m; done```
 
 or make a cron job.
-
-Adding new sites to the scraper
--------------------------------
-
-The procedure for adding new sites to the scraper is outlined in
-`parsers/__init__.py` .  You need to
-
-1. Create a new parser module in parsers/ .  This should be a
-   subclass of BaseParser (in parsers/baseparser.py).  Model it off
-   the other parsers in that directory.  You can test the parser
-   with by running, e.g.,
-
-    ```$ python parsers/test_parser.py bbc.BBCParser```
-    
-    which will output a list of URLs to track, and
-    
-    ```$ python parsers/test_parser.py bbc.BBCParser http://www.bbc.co.uk/news/uk-21649494```
-    
-    which will output the text that NewsDiffs would store.
-
-2. Add the parser to 'parsers' in `parsers/__init__.py`
-
-   This should cause the scraper to start tracking the site.
-
-3. To make the source display properly on the website, you will need
-   minor edits to two other files: website/frontend/models.py and
-   website/frontend/views.py (to define the display name and create a tab
-   for the source, respectively).  Search for 'bbc' to find the locations
-   to edit.
