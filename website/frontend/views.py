@@ -72,7 +72,6 @@ def get_articles(source=None, distance=0):
       WHERE version_3.boring = 0
       GROUP BY Articles.id
       -- isn't 'age' here actually latest_version_date?
-      HAVING (age > %s  AND age < %s  AND num_vs > 1 )
       ) T,
       Articles
     WHERE (version.article_id = Articles.id) and
@@ -81,8 +80,7 @@ def get_articles(source=None, distance=0):
     ORDER BY date
     '''
 
-    all_versions = models.Version.objects.raw(version_query,
-                                              (start_date, end_date))
+    all_versions = models.Version.objects.raw(version_query)
     article_dict = {}
     for v in all_versions:
         a=models.Article(id=v.article_id,
