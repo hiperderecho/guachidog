@@ -239,7 +239,12 @@ def add_to_git_repo(data, filename, article):
                 """Return the SHA1 hash of filename in a given version"""
                 output = run_git_command(['ls-tree', '-r', version, filename],
                                          article.full_git_dir)
-                return output.split()[2]
+                try:
+                    return output.split()[2]
+                except IndexError as e:
+                    logger.error('git ls-tree value: [%s]' % output)
+                    return ''
+
             # What's the difference between `hashes` and `commits`?
             # `hashes` is the file hash, `commits` are the commit hashes
             hashes = map(get_hash, commits)
