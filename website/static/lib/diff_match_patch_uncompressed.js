@@ -1,8 +1,7 @@
 /**
  * Diff Match and Patch
- *
- * Copyright 2006 Google Inc.
- * http://code.google.com/p/google-diff-match-patch/
+ * Copyright 2018 The diff-match-patch Authors.
+ * https://github.com/google/diff-match-patch
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,15 +35,6 @@ function diff_match_patch() {
   this.Diff_Timeout = 1.0;
   // Cost of an empty edit operation in terms of edit characters.
   this.Diff_EditCost = 4;
-  // How eagerly to 'split' an equality, absorbing it into neighboring
-  // large changes.  (-infinity => compare equality to min of changes;
-  // 0 => geometric mean; 1 => mean; infinity => max)
-  this.Diff_SplitWeight = -2;
-  // How eagerly to 'split' small equalities.
-  this.Diff_SplitSmall = 2;
-  // Whether to show &para; at the end of each line.
-  this.Diff_ShowPara = true;
-
   // At what point is no match declared (0.0 = perfection, 1.0 = very loose).
   this.Match_Threshold = 0.5;
   // How far to search for a match (0 = exact location, 1000+ = broad match).
@@ -58,7 +48,6 @@ function diff_match_patch() {
   this.Patch_DeleteThreshold = 0.5;
   // Chunk size for context length.
   this.Patch_Margin = 4;
-
 
   // The number of bits in an int.
   this.Match_MaxBits = 32;
@@ -731,13 +720,6 @@ diff_match_patch.prototype.diff_halfMatch_ = function(text1, text2) {
   return [text1_a, text1_b, text2_a, text2_b, mid_common];
 };
 
-diff_match_patch.prototype.diff_splitThreshold_ = function(length1, length2) {
-  var p = this.Diff_SplitWeight;
-  var d = this.Diff_SplitSmall;
-  return Math.pow((Math.pow(length1 + d, p)
-                 + Math.pow(length2 + d, p)) / 2,
-                  1/p) - d;
-}
 
 /**
  * Reduce the number of edits by eliminating semantically trivial equalities.
@@ -773,10 +755,10 @@ diff_match_patch.prototype.diff_cleanupSemantic = function(diffs) {
       }
       // Eliminate an equality that is smaller or equal to the edits on both
       // sides of it.
-      if (lastequality &&
-          lastequality.length <= this.diff_splitThreshold_(
-            Math.max(length_insertions1, length_deletions1),
-            Math.max(length_insertions2, length_deletions2))) {
+      if (lastequality && (lastequality.length <=
+          Math.max(length_insertions1, length_deletions1)) &&
+          (lastequality.length <= Math.max(length_insertions2,
+                                           length_deletions2))) {
         // Duplicate record.
         diffs.splice(equalities[equalitiesLength - 1], 0,
                      [DIFF_DELETE, lastequality]);
@@ -1234,39 +1216,29 @@ diff_match_patch.prototype.diff_xIndex = function(diffs, loc) {
  * @return {string} HTML representation.
  */
 diff_match_patch.prototype.diff_prettyHtml = function(diffs) {
-  var fragments = [];
+  var html = [];
   var pattern_amp = /&/g;
   var pattern_lt = /</g;
   var pattern_gt = />/g;
   var pattern_para = /\n/g;
-  var symbol_para = this.Diff_ShowPara ? '&para;<br>' : '<br>';
-  var pattern_context = /(\n\n.*)\n\n(?:.|\n)*\n\n(.*\n\n)/
-  var pattern_context_end = /(\n\n.*)\n\n(?:.|\n)*/
   for (var x = 0; x < diffs.length; x++) {
     var op = diffs[x][0];    // Operation (insert, delete, equal)
     var data = diffs[x][1];  // Text of change.
-    var html = data.replace(pattern_amp, '&amp;').replace(pattern_lt, '&lt;')
-      .replace(pattern_gt, '&gt;');  // Change as HTML
-    if (op == DIFF_EQUAL) {
-      if (x + 1 < diffs.length)
-        html = html.replace(pattern_context, "$1\n\n[...]\n\n$2");
-      else
-        html = html.replace(pattern_context_end, "$1\n\n[...]");
-    }
-    var text = html.replace(pattern_para, symbol_para);
+    var text = data.replace(pattern_amp, '&amp;').replace(pattern_lt, '&lt;')
+        .replace(pattern_gt, '&gt;').replace(pattern_para, '&para;<br>');
     switch (op) {
       case DIFF_INSERT:
-        fragments[x] = '<ins>' + text + '</ins>';
+        html[x] = '<ins style="background:#e6ffe6;">' + text + '</ins>';
         break;
       case DIFF_DELETE:
-        fragments[x] = '<del>' + text + '</del>';
+        html[x] = '<del style="background:#ffe6e6;">' + text + '</del>';
         break;
       case DIFF_EQUAL:
-        fragments[x] = '<span>' + text + '</span>';
+        html[x] = '<span>' + text + '</span>';
         break;
     }
   }
-  return fragments.join('');
+  return html.join('');
 };
 
 

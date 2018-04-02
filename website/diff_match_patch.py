@@ -3,9 +3,8 @@
 from __future__ import division
 
 """Diff Match and Patch
-
-Copyright 2006 Google Inc.
-http://code.google.com/p/google-diff-match-patch/
+Copyright 2018 The diff-match-patch Authors.
+https://github.com/google/diff-match-patch
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,15 +48,6 @@ class diff_match_patch:
     self.Diff_Timeout = 1.0
     # Cost of an empty edit operation in terms of edit characters.
     self.Diff_EditCost = 4
-    # How eagerly to 'split' an equality, absorbing it into neighboring
-    # large changes.  (-infinity => compare equality to min of changes;
-    # 0 => geometric mean; 1 => mean; infinity => max)
-    self.Diff_SplitWeight = -2
-    # How eagerly to 'split' small equalities.
-    self.Diff_SplitSmall = 2
-    # Whether to show &para; at the end of each line.
-    self.Diff_ShowPara = True
-
     # At what point is no match declared (0.0 = perfection, 1.0 = very loose).
     self.Match_Threshold = 0.5
     # How far to search for a match (0 = exact location, 1000+ = broad match).
@@ -189,7 +179,6 @@ class diff_match_patch:
       # Single character string.
       # After the previous speedup, the character can't be an equality.
       return [(self.DIFF_DELETE, text1), (self.DIFF_INSERT, text2)]
-    longtext = shorttext = None  # Garbage collect.
 
     # Check to see if the problem can be split in two.
     hm = self.diff_halfMatch(text1, text2)
@@ -644,11 +633,6 @@ class diff_match_patch:
       (text2_a, text2_b, text1_a, text1_b, mid_common) = hm
     return (text1_a, text1_b, text2_a, text2_b, mid_common)
 
-  def diff_splitThreshold_(self, length1, length2):
-    p = self.Diff_SplitWeight;
-    d = self.Diff_SplitSmall;
-    return (((length1 + d) ** p + (length2 + d) ** p) / 2) ** (1/p) - d
-
   def diff_cleanupSemantic(self, diffs):
     """Reduce the number of edits by eliminating semantically trivial
     equalities.
@@ -677,10 +661,9 @@ class diff_match_patch:
           length_deletions2 += len(diffs[pointer][1])
         # Eliminate an equality that is smaller or equal to the edits on both
         # sides of it.
-        if (lastequality and
-            len(lastequality) <= self.diff_splitThreshold_(
-              max(length_insertions1, length_deletions1),
-              max(length_insertions2, length_deletions2))):
+        if (lastequality and (len(lastequality) <=
+            max(length_insertions1, length_deletions1)) and
+            (len(lastequality) <= max(length_insertions2, length_deletions2))):
           # Duplicate record.
           diffs.insert(equalities[-1], (self.DIFF_DELETE, lastequality))
           # Change second copy to insert.
@@ -1085,9 +1068,8 @@ class diff_match_patch:
     """
     html = []
     for (op, data) in diffs:
-      symbol_para = "&para;<br>" if self.Diff_ShowPara else "<br>"
       text = (data.replace("&", "&amp;").replace("<", "&lt;")
-                 .replace(">", "&gt;").replace("\n", symbol_para))
+                 .replace(">", "&gt;").replace("\n", "&para;<br>"))
       if op == self.DIFF_INSERT:
         html.append("<ins style=\"background:#e6ffe6;\">%s</ins>" % text)
       elif op == self.DIFF_DELETE:
