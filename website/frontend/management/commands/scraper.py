@@ -50,12 +50,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         ch = logging.FileHandler('/tmp/newsdiffs_logging', mode='w')
+        ch = logging.StreamHandler(stream=sys.stdout)
         ch.setLevel(logging.DEBUG)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
 
         ch = logging.FileHandler(ERROR_FILE_PATH, mode='a')
+        ch = logging.StreamHandler(stream=sys.stdout)
         ch.setLevel(logging.WARNING)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
@@ -196,6 +198,7 @@ def add_to_git_repo(data, filename, article):
 
     #Don't use full path because it can exceed the maximum filename length
     #full_path = os.path.join(models.GIT_DIR, filename)
+    logger.debug('Changing to %s dir' % article.full_git_dir)
     os.chdir(article.full_git_dir)
     mkdir_p(os.path.dirname(filename))
 
