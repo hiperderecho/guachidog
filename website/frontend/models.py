@@ -38,6 +38,9 @@ class Article(models.Model):
     last_check = models.DateTimeField(default=ancient)
     git_dir = models.CharField(max_length=255, blank=False, default='old')
 
+    def __unicode__(self):
+        return "%s" % (self.url)
+
     @property
     def full_git_dir(self):
         return GIT_DIR + self.git_dir
@@ -84,6 +87,9 @@ class Version(models.Model):
     date = models.DateTimeField(blank=False)
     boring = models.BooleanField(blank=False, default=False)
     diff_json = models.CharField(max_length=255, null=True)
+
+    def __unicode__(self):
+        return "%s for %s" % (self.v, self.article)
 
     def text(self):
         try:
