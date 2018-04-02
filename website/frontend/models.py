@@ -35,19 +35,22 @@ class Article(models.Model):
         return GIT_DIR + self.git_dir
 
     def filename(self):
-        ans = self.url.rstrip('/')
-        if ans.startswith('http://'):
-            return ans[len('http://'):]
-        elif ans.startswith('https://'):
-            return ans[len('https://'):]
-        raise ValueError("Unknown file type '%s'" % self.url)
+        parsed = urlparse(self.url)
+        path = parsed.path.rstrip('/')
+
+        # path doesn't have any trailing slash, and whatever was left after
+        # rstrip(), is a reasonably valid path
+        ret = parsed.hostname + path + '/index.html'
+
+        return ret
 
     def publication(self):
-        domain = self.url.split('/')[2]
-        if domain in PublicationDict:
-            return PublicationDict[domain]
+        parsed = urlparse(self.url)
+
+        if parsed.hostname in PublicationDict:
+            return PublicationDict[parsed.hostname]
         else:
-            return domain
+            return parsed.hostname
 
     def versions(self):
         return self.version_set.filter(boring=False).order_by('date')
