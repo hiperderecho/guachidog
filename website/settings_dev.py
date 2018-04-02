@@ -6,10 +6,7 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-     ('Eric Price', 'ecprice@mit.edu'),
-     ('Jennifer 8. Lee', 'jenny8lee@gmail.com'),
-     ('Gregory Price', 'price@mit.edu'),
-     ('Carl Gieringer', 'carl.gieringer@gmail.com'),
+     ('Diego Escalante Urrelo', 'diego@hiperderecho.org'),
 )
 
 MANAGERS = ADMINS
@@ -29,11 +26,11 @@ DATABASES = {
 # although not all choices may be available on all operating systems.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-TIME_ZONE = 'America/New_York'
+TIME_ZONE = 'America/Lima'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-pe'
 
 SITE_ID = 1
 
@@ -52,6 +49,10 @@ MEDIA_URL = ''
 
 STATIC_ROOT = ''
 STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    WEBAPP_ROOT + STATIC_URL,
+]
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
@@ -73,7 +74,12 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+)
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
 
 ROOT_URLCONF = 'website.urls'
@@ -91,7 +97,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
     'django.contrib.admin',
     'south',
     'frontend',
