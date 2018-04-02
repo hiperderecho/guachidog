@@ -46,11 +46,7 @@ class Article(models.Model):
 
     def publication(self):
         parsed = urlparse(self.url)
-
-        if parsed.hostname in PublicationDict:
-            return PublicationDict[parsed.hostname]
-        else:
-            return parsed.hostname
+        return parsed.hostname
 
     def versions(self):
         return self.version_set.filter(boring=False).order_by('date')
