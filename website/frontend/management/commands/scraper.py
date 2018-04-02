@@ -43,7 +43,7 @@ class Command(BaseCommand):
 
     By default, scan front pages for new articles, and scan
     existing and new articles to archive their current contents.
-    
+
     Articles that haven't changed in a while are skipped if we've
     scanned them recently, unless --all is passed.
     '''.strip())
@@ -152,6 +152,8 @@ def run_git_command(command, git_dir, max_timeout=15):
         else:
             raise IndexLockError('Git index.lock file exists for %s seconds'
                                  % max_timeout)
+
+    logger.debug('GIT call: %s' % command)
     output =  subprocess.check_output([GIT_PROGRAM] + command,
                                       cwd=git_dir,
                                       stderr=subprocess.STDOUT)
@@ -235,6 +237,7 @@ def add_to_git_repo(data, filename, article):
         already_exists = True
 
     # When close this file?
+    logger.debug('Writing %s file' % filename)
     open(filename, 'w').write(data)
 
     if already_exists:
@@ -379,7 +382,7 @@ def update_versions(todays_repo, do_all=False):
     logger.info('Looking for articles to check')
     # For memory issues, restrict to the last year of articles
     threshold = datetime.now() - timedelta(days=366)
-    article_query = models.Article.objects.exclude(git_dir='old').filter(Q(last_update__gt=threshold) | 
+    article_query = models.Article.objects.exclude(git_dir='old').filter(Q(last_update__gt=threshold) |
                                                                          Q(initial_date__gt=threshold))
     articles = list(article_query)
     total_articles = len(articles)
