@@ -14,24 +14,6 @@ from django.views.decorators.cache import cache_page
 
 OUT_FORMAT = '%B %d, %Y at %l:%M%P EDT'
 
-SEARCH_ENGINES = """
-http://www.ask.com
-http://www.google
-https://www.google
-search.yahoo.com
-http://www.bing.com
-""".split()
-
-def came_from_search_engine(request):
-    return any(x in request.META.get('HTTP_REFERER', '')
-               for x in SEARCH_ENGINES)
-
-
-
-def Http400():
-    t = loader.get_template('404.html')
-    return HttpResponse(t.render(Context()), status=400)
-
 def get_first_update(source):
     if source is None:
         source = ''
@@ -124,7 +106,7 @@ def add_url(request):
     try:
         request_url = request.POST['url']
     except KeyError:
-        return Http400()
+        return Http404("No URL provided via POST")
 
     url = request_url.split('?')[0]  #For if user copy-pastes from news site
     url = prepend_http(url)
@@ -233,14 +215,14 @@ def diffview(request, vid1, vid2, urlarg):
         indices = [i for i, x in versions.items() if x == v]
         if not indices:
             #One of these versions doesn't exist / is boring
-            return Http400()
+            return Http404("Version doesn't exist or is marked as boring")
         index = indices[0]
         adjacent_versions.append([versions.get(index+offset)
                                   for offset in (-1, 1)])
 
 
     if any(x is None for x in texts):
-        return Http400()
+        return Http404("One or two of the versions are invalid")
 
     links = []
     for i in range(2):
@@ -259,7 +241,6 @@ def diffview(request, vid1, vid2, urlarg):
             'prev':links[0], 'next':links[1],
             'article_shorturl': article.filename(),
             'article_url': article.url, 'v1': v1, 'v2': v2,
-            'display_search_banner': came_from_search_engine(request),
             }, context_instance=RequestContext(request))
 
 def get_rowinfo(article, version_lst=None):
@@ -347,7 +328,6 @@ def article_history(request, urlarg=''):
     rowinfo = get_rowinfo(article)
     return render_to_response('guachidog_history.html', {'article':article,
                                                        'versions':rowinfo,
-            'display_search_banner': came_from_search_engine(request),
                                                        },
                                                        context_instance=RequestContext(request))
 
