@@ -127,7 +127,6 @@ def is_valid_domain(domain):
     """Cheap method to tell whether a domain is being tracked."""
     return any(domain.endswith(source) for source in SOURCES)
 
-@cache_page(60 * 30)  #30 minute cache
 def browse(request, source=''):
     if source not in SOURCES + ['']:
         raise Http404
@@ -182,31 +181,6 @@ def feed(request, source=''):
             },
             context_instance=RequestContext(request),
             mimetype='application/atom+xml')
-
-def old_diffview(request):
-    """Support for legacy diff urls"""
-    url = request.REQUEST.get('url')
-    v1tag = request.REQUEST.get('v1')
-    v2tag = request.REQUEST.get('v2')
-    if url is None or v1tag is None or v2tag is None:
-        return HttpResponseRedirect(reverse(front))
-
-    try:
-        v1 = Version.objects.get(v=v1tag)
-        v2 = Version.objects.get(v=v2tag)
-    except Version.DoesNotExist:
-        return Http400()
-
-    try:
-        article = Article.objects.get(url=url)
-    except Article.DoesNotExist:
-        return Http400()
-
-    return redirect(reverse('diffview', kwargs=dict(vid1=v1.id,
-                                                    vid2=v2.id,
-                                                    urlarg=article.filename())),
-                    permanent=True)
-
 
 def diffview(request, vid1, vid2, urlarg):
     # urlarg is unused, and only for readability
@@ -321,7 +295,7 @@ def article_history(request, urlarg=''):
     if url is None:
         url = urlarg
     if len(url) == 0:
-        return HttpResponseRedirect(reverse(front))
+        return HttpResponseRedirect(reverse(browse))
 
     url = url.split('?')[0]  #For if user copy-pastes from news site
 
@@ -380,31 +354,3 @@ def json_view(request, vid):
         text = version.text(),
         )
     return HttpResponse(json.dumps(data), mimetype="application/json")
-
-def upvote(request):
-    article_url = request.REQUEST.get('article_url')
-    diff_v1 = request.REQUEST.get('diff_v1')
-    diff_v2 = request.REQUEST.get('diff_v2')
-    remote_ip = request.META.get('REMOTE_ADDR')
-    article_id = Article.objects.get(url=article_url).id
-    models.Upvote(article_id=article_id, diff_v1=diff_v1, diff_v2=diff_v2, creation_time=datetime.datetime.now(), upvoter_ip=remote_ip).save()
-    return render_to_response('upvote.html')
-
-def about(request):
-    return render_to_response('about.html', {})
-
-def examples(request):
-    return render_to_response('examples.html', {})
-
-def contact(request):
-    return render_to_response('contact.html', {})
-
-def front(request):
-    return render_to_response('front.html', {'sources': SOURCES})
-
-def subscribe(request):
-    return render_to_response('subscribe.html', {})
-
-def press(request):
-    return render_to_response('press.html', {})
-
